@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Sports Talk ИИ-Ассистент</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
+        #chatbox { width: 100%; max-width: 600px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .message { margin: 10px 0; }
+        .user { text-align: right; color: #2b7a78; }
+        .bot { text-align: left; color: #17252a; }
+        #input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        #send { padding: 10px 20px; margin-top: 10px; background: #3aafa9; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="chatbox">
+        <h3>Спортивный ассистент для родителей</h3>
+        <div id="chatlog"></div>
+        <input id="input" type="text" placeholder="Напишите ваш вопрос..." />
+        <button id="send">Отправить</button>
+    </div>
+
+    <script>
+        const input = document.getElementById("input");
+        const send = document.getElementById("send");
+        const chatlog = document.getElementById("chatlog");
+
+        function addMessage(text, sender) {
+            const div = document.createElement("div");
+            div.className = "message " + sender;
+            div.textContent = text;
+            chatlog.appendChild(div);
+            chatlog.scrollTop = chatlog.scrollHeight;
+        }
+
+        send.addEventListener("click", async () => {
+            const message = input.value.trim();
+            if (!message) return;
+            addMessage(message, "user");
+            input.value = "";
+
+            const response = await fetch("https://sports-talk-assistant.onrender.com/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message })
+            });
+
+            const data = await response.json();
+            addMessage(data.response || "Ошибка ответа от ассистента.", "bot");
+        });
+    </script>
+</body>
+</html>

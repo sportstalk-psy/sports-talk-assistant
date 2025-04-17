@@ -1,4 +1,4 @@
-flask
-flask-cors
-openai==0.28.1
-gunicorn
+flask==3.1.0
+flask-cors==5.0.1
+gunicorn==23.0.0
+openai>=1.0.0

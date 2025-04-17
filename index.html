@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -42,14 +41,3 @@
             input.value = "";
 
             const response = await fetch("https://sports-talk-assistant.onrender.com/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message })
-            });
-
-            const data = await response.json();
-            addMessage(data.response || "Ошибка ответа от ассистента.", "bot");
-        });
-    </script>
-</body>
-</html>

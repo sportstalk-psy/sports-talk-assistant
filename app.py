@@ -1,14 +1,14 @@
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
+from openai import OpenAI
 import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Загружаем ключ из переменной окружения
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Новый клиент OpenAI
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -17,8 +17,8 @@ def chat():
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
-        # Запрос к ChatGPT
-        completion = openai.ChatCompletion.create(
+        # Новый формат вызова chat completion
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": user_message}]
         )

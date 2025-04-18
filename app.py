@@ -7,7 +7,6 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Новый клиент OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.route("/chat", methods=["POST"])
@@ -17,10 +16,20 @@ def chat():
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
-        # Новый формат вызова chat completion
         completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Ты — ИИ-ассистент для родителей и спортсменов, "
+                        "специализирующийся только на спортивной психологии, ментальной подготовке, "
+                        "психологии спортсменов, поддержке родителей, отношениях с тренером и смежных вопросах. "
+                        "Если вопрос выходит за рамки этих тем — мягко перенаправь и предложи задать вопрос по спортивной психологии."
+                    )
+                },
+                {"role": "user", "content": user_message}
+            ]
         )
         reply = completion.choices[0].message.content
         return jsonify({"response": reply})

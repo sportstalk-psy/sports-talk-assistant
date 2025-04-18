@@ -72,6 +72,8 @@
       font-weight: 300;
     }
     .profile-card strong {
+  display: block;
+  margin-bottom: 4px;
       font-weight: 700;
       color: #fff;
     }
@@ -83,6 +85,8 @@
       margin-top: 6px;
     }
     #input-area {
+  max-width: 80%;
+  margin: 40px auto 0 auto;
   position: sticky;
   bottom: 0;
   z-index: 10;
@@ -95,6 +99,7 @@
       width: 100%;
     }
     #input {
+  width: 100%;
   max-width: 100%;
       flex: 1;
       padding: 12px;
@@ -119,18 +124,30 @@
 
     @media (max-width: 600px) {
       #chatlog {
+        width: 100%;
+        padding: 10px 20px;
+      }
+      #input-area {
+        padding: 10px 20px;
+        width: 100%;
+        margin: 20px auto;
+      }
+      #chatlog {
   margin-top: 10px;
   margin-bottom: 10px;
         width: 100%;
         padding: 10px 20px;
       }
       #input-area {
+  max-width: 80%;
+  margin: 40px auto 0 auto;
   position: sticky;
   bottom: 0;
   z-index: 10;
         padding: 10px 20px;
       }
       #input {
+  width: 100%;
   max-width: 100%;
         font-size: 15px;
       }

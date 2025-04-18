@@ -141,7 +141,9 @@
     @media (max-width: 600px) {
       #chatlog {
         width: 100%;
-        padding: 10px 40px 100px 40px; /* ← отступ под input-area */
+        padding: 10px 40px;
+  	height: calc(100vh - 100px); /* ← вот это добавь */
+  	overflow-y: auto;
       }
 
       #input-area {

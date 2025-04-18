@@ -13,11 +13,12 @@
     body {
       font-family: 'Montserrat', sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 10px;
       background-color: #11161c;
       display: flex;
       flex-direction: column;
-      height: 98vh;
+      height: 100vh;
+      overflow: hidden;
       color: #fff;
     }
     #chatbox {
@@ -32,9 +33,10 @@
   margin-bottom: 10px;
       flex-grow: 1;
       overflow-y: auto;
-      width: 85%;
-      max-width: 1000px;
-      padding: 20px 40px;
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
+      margin: 10px auto;
       background-color: #1c1f26;
       border-radius: 30px;
     }
@@ -133,20 +135,16 @@
         width: 100%;
         margin: 20px auto;
       }
-      #chatlog {
-  margin-top: 10px;
-  margin-bottom: 10px;
-        width: 100%;
-        padding: 10px 20px;
-      }
       #input-area {
-  max-width: 80%;
-  margin: 40px auto 0 auto;
-  position: sticky;
+  max-width: 100%;
+  padding: 10px 20px;
+  position: fixed;
   bottom: 0;
-  z-index: 10;
-        padding: 10px 20px;
-      }
+  left: 0;
+  background-color: #11161c;
+  z-index: 1000;
+  width: 100%;
+	}
       #input {
   width: 100%;
   max-width: 100%;

@@ -74,7 +74,7 @@ def chat():
                 base_reply += (
         f"<br><br><strong>👤 {match['name']}</strong><br>"
         f"{match['description']}<br>"
-        f"<a href='{match['link']}' target='_blank'>{match['link']}</a>"
+        f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
     )
 
         return jsonify({"response": base_reply})

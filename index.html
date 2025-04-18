@@ -104,6 +104,8 @@
         }
     
         @media (max-width: 600px) {
+body { font-size: 15px; }
+.message, .profile-card { font-size: 15px; }
             #chatbox {
                 padding: 15px;
                 border-radius: 12px;
@@ -174,7 +176,17 @@
                     chatlog.appendChild(card);
                 });
             } else {
-                div.innerHTML = text.replace(/\n/g, "<br>");
+                
+            if (sender === "user") {
+                div.style.backgroundColor = "#cefa07";
+                div.style.color = "#11161c";
+                div.style.textAlign = "right";
+                div.style.fontWeight = "600";
+                div.style.maxWidth = "80%";
+                div.style.marginLeft = "auto";
+            }
+            div.innerHTML = text.replace(/\n/g, "<br>");
+        
                 chatlog.appendChild(div);
             }
 

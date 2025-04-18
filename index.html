@@ -7,11 +7,12 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
         #chatbox { width: 100%; max-width: 600px; margin: 0 auto; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-        .message { margin: 10px 0; }
+        .message { margin: 10px 0; line-height: 1.5; }
         .user { text-align: right; color: #2b7a78; }
         .bot { text-align: left; color: #17252a; }
         #input { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
         #send { padding: 10px 20px; margin-top: 10px; background: #3aafa9; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #chatlog a { color: #2b7a78; font-weight: bold; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -30,7 +31,7 @@
         function addMessage(text, sender) {
             const div = document.createElement("div");
             div.className = "message " + sender;
-            div.textContent = text;
+            div.innerHTML = text.replace(/\n/g, "<br>");
             chatlog.appendChild(div);
             chatlog.scrollTop = chatlog.scrollHeight;
         }

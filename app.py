@@ -26,7 +26,7 @@ def get_embedding(text):
     return response.data[0].embedding
 
 # Получаем топ-2 наиболее релевантных психолога (порог 0.65)
-def find_relevant_psychologists(query, top_n=2, threshold=0.65):
+def find_relevant_psychologists(query, top_n=2, threshold=0.35):
     query_embedding = np.array(get_embedding(query)).reshape(1, -1)
     results = []
 

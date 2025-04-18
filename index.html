@@ -10,36 +10,30 @@
       box-sizing: border-box;
     }
 
-    body {
-      font-family: 'Montserrat', sans-serif;
+    html, body {
       margin: 0;
-      padding: 10px;
+      padding: 0;
+      height: 100%;
       background-color: #11161c;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
+      font-family: 'Montserrat', sans-serif;
       color: #fff;
-      overflow: auto; /* ← исправлено */
     }
 
     #chatbox {
-      flex-grow: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      height: 100vh; /* ← ключевой момент */
     }
 
     #chatlog {
-      margin-top: 10px;
-      margin-bottom: 10px;
-      flex-grow: 1;
+      flex: 1;
       overflow-y: auto;
+      padding: 20px;
+      padding-bottom: 140px; /* ← важно: отступ под input-area */
+      background-color: #1c1f26;
       width: 100%;
       max-width: 1200px;
-      padding: 20px;
-      padding-bottom: 80px; /* ← важно! */
-      margin: 10px auto;
-      background-color: #1c1f26;
+      margin: 0 auto;
       border-radius: 30px;
     }
 
@@ -98,23 +92,20 @@
     }
 
     #input-area {
-      max-width: 90%;
-      margin: 10px auto 60px auto;
-      position: sticky;
-      bottom: 30px;
-      z-index: 10;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #11161c;
+      border-top: 1px solid #333;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 10px 10px;
-      background-color: #11161c;
-      border-top: 1px solid #333;
-      width: 100%;
+      padding: 12px 20px;
+      z-index: 1000;
     }
 
     #input {
-      width: 90%;
-      max-width: 90%;
       flex: 1;
       padding: 12px;
       border-radius: 20px;
@@ -140,26 +131,10 @@
 
     @media (max-width: 600px) {
       #chatlog {
-        width: 100%;
-        padding: 10px 40px;
-  	height: calc(100vh - 100px); /* ← вот это добавь */
-  	overflow-y: auto;
-      }
-
-      #input-area {
-        max-width: 100%;
-        padding: 10px 20px;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        background-color: #11161c;
-        z-index: 1000;
-        width: 100%;
+        padding: 10px 20px 140px 20px; /* для мобильного — больше отступ снизу */
       }
 
       #input {
-        width: 100%;
-        max-width: 100%;
         font-size: 15px;
       }
 

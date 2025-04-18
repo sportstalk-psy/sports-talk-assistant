@@ -29,13 +29,14 @@
       overflow: hidden;
     }
     #chatlog {
-  margin-top: 10px;
-  margin-bottom: 10px;
+      margin-top: 10px;
+      margin-bottom: 10px;
       flex-grow: 1;
       overflow-y: auto;
       width: 100%;
       max-width: 1200px;
       padding: 20px;
+      padding-bottom: 80px;
       margin: 10px auto;
       background-color: #1c1f26;
       border-radius: 30px;
@@ -75,8 +76,8 @@
       font-weight: 300;
     }
     .profile-card strong {
-  display: block;
-  margin-bottom: 4px;
+      display: block;
+      margin-bottom: 4px;
       font-weight: 700;
       color: #fff;
     }
@@ -88,22 +89,22 @@
       margin-top: 6px;
     }
     #input-area {
-  max-width: 90%;
-  margin: 10px auto 60px auto;
-  position: sticky;
-  bottom: 30px;
-  z-index: 10;
+      max-width: 100%;
+      padding: 10px 20px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      background-color: #11161c;
+      z-index: 1000;
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 10px 10px;
-      background-color: #11161c;
       border-top: 1px solid #333;
-      width: 100%;
     }
     #input {
-  width: 90%;
-  max-width: 90%;
+      width: 100%;
+      max-width: 100%;
       flex: 1;
       padding: 12px;
       border-radius: 20px;
@@ -124,47 +125,15 @@
       height: 24px;
       fill: #cefa07;
     }
-
-    @media (max-width: 600px) {
-      #chatlog {
-        width: 100%;
-        padding: 10px 20px;
-      }
-      #input-area {
-        padding: 10px 20px;
-        width: 100%;
-        margin: 20px auto;
-      }
-      #input-area {
-  max-width: 100%;
-  padding: 10px 20px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  background-color: #11161c;
-  z-index: 1000;
-  width: 100%;
-	}
-      #input {
-  width: 100%;
-  max-width: 100%;
-        font-size: 15px;
-      }
-      .message, .profile-card {
-        font-size: 15px;
-      }
-    }
   </style>
 </head>
 <body>
   <div id="chatbox">
-    
-        <div style="padding: 16px 0; text-align: center;">
-            <img src="https://static.tildacdn.com/tild3533-3232-4632-b964-393032346437/sports_talk_logo_tem.png" alt="Sports Talk" style="max-height: 40px; vertical-align: middle;">
-            <span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
-        </div>
-        <div id="chatlog"></div>
-        
+    <div style="padding: 16px 0; text-align: center;">
+      <img src="https://static.tildacdn.com/tild3533-3232-4632-b964-393032346437/sports_talk_logo_tem.png" alt="Sports Talk" style="max-height: 40px; vertical-align: middle;">
+      <span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
+    </div>
+    <div id="chatlog"></div>
     <div id="input-area">
       <input id="input" type="text" placeholder="Напишите сообщение..." />
       <button id="send">
@@ -174,7 +143,6 @@
       </button>
     </div>
   </div>
-
   <script>
     const input = document.getElementById("input");
     const send = document.getElementById("send");
@@ -183,33 +151,8 @@
     function addMessage(text, sender) {
       const div = document.createElement("div");
       div.className = "message " + sender;
-
-      if (text.includes("👤")) {
-        const parts = text.split("👤").map(p => p.trim()).filter(p => p);
-        const mainPart = parts.shift();
-
-        const baseBlock = document.createElement("div");
-        baseBlock.className = "message bot";
-        baseBlock.innerHTML = mainPart.replace(/\n/g, "<br>");
-        chatlog.appendChild(baseBlock);
-
-        // удалено дублирование, строка интро не нужна
-
-        parts.forEach(block => {
-          const card = document.createElement("div");
-          card.className = "profile-card";
-          const [nameLine, ...rest] = block.split("<br>");
-          const name = `<strong>${nameLine}</strong>`;
-          const desc = `<span>${rest.slice(0, -1).join("<br>")}</span>`;
-          const link = rest[rest.length - 1];
-          card.innerHTML = name + desc + "<br>" + link;
-          chatlog.appendChild(card);
-        });
-      } else {
-        div.innerHTML = text.replace(/\n/g, "<br>");
-        chatlog.appendChild(div);
-      }
-
+      div.innerHTML = text.replace(/\n/g, "<br>");
+      chatlog.appendChild(div);
       chatlog.scrollTop = chatlog.scrollHeight;
     }
 
@@ -231,7 +174,6 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message })
         });
-
         const data = await response.json();
         chatlog.removeChild(typing);
         addMessage(data.response || "Ошибка ответа от ассистента.", "bot");

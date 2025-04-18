@@ -28,6 +28,8 @@
       overflow: hidden;
     }
     #chatlog {
+  margin-top: 10px;
+  margin-bottom: 10px;
       flex-grow: 1;
       overflow-y: auto;
       width: 80%;
@@ -81,6 +83,9 @@
       margin-top: 6px;
     }
     #input-area {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -90,6 +95,7 @@
       width: 100%;
     }
     #input {
+  max-width: 100%;
       flex: 1;
       padding: 12px;
       border-radius: 20px;
@@ -113,13 +119,19 @@
 
     @media (max-width: 600px) {
       #chatlog {
+  margin-top: 10px;
+  margin-bottom: 10px;
         width: 100%;
         padding: 10px 20px;
       }
       #input-area {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
         padding: 10px 20px;
       }
       #input {
+  max-width: 100%;
         font-size: 15px;
       }
       .message, .profile-card {
@@ -130,7 +142,13 @@
 </head>
 <body>
   <div id="chatbox">
-    <div id="chatlog"></div>
+    
+        <div style="padding: 16px 0; text-align: center;">
+            <img src="https://sports-talk.ru/logo.svg" alt="Sports Talk" style="max-height: 40px; vertical-align: middle;">
+            <span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
+        </div>
+        <div id="chatlog"></div>
+        
     <div id="input-area">
       <input id="input" type="text" placeholder="Напишите сообщение..." />
       <button id="send">
@@ -159,10 +177,7 @@
         baseBlock.innerHTML = mainPart.replace(/\n/g, "<br>");
         chatlog.appendChild(baseBlock);
 
-        const intro = document.createElement("div");
-        intro.className = "profile-card";
-        intro.textContent = "По вашему запросу могу порекомендовать следующих специалистов:";
-        chatlog.appendChild(intro);
+        // удалено дублирование, строка интро не нужна
 
         parts.forEach(block => {
           const card = document.createElement("div");

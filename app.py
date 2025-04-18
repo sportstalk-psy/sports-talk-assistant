@@ -71,7 +71,11 @@ def chat():
         if matches:
             base_reply += "\n\nПо вашему запросу могу порекомендовать следующих специалистов:"
             for match in matches:
-                base_reply += f"\n\n👤 {match['name']} — {match['description']}\n🔗 {match['link']}"
+                base_reply += (
+        f"<br><br><strong>👤 {match['name']}</strong><br>"
+        f"{match['description']}<br>"
+        f"<a href='{match['link']}' target='_blank'>{match['link']}</a>"
+    )
 
         return jsonify({"response": base_reply})
 

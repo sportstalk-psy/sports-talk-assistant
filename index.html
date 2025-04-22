@@ -209,8 +209,8 @@
       </button>
     </div>
   </div>
+
   <script>
-document.addEventListener("DOMContentLoaded", function () {
   const input = document.getElementById("input");
   const send = document.getElementById("send");
   const chatlog = document.getElementById("chatlog");
@@ -225,7 +225,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const baseBlock = document.createElement("div");
       baseBlock.className = "message bot";
-      baseBlock.innerHTML = mainPart.replace(/\n/g, "<br>");
+      baseBlock.innerHTML = mainPart.replace(/
+/g, "<br>");
       chatlog.appendChild(baseBlock);
 
       parts.forEach(block => {
@@ -251,7 +252,8 @@ document.addEventListener("DOMContentLoaded", function () {
         chatlog.appendChild(card);
       });
     } else {
-      div.innerHTML = text.replace(/\n/g, "<br>");
+      div.innerHTML = text.replace(/
+/g, "<br>");
       chatlog.appendChild(div);
     }
 
@@ -323,7 +325,6 @@ document.addEventListener("DOMContentLoaded", function () {
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter") sendMessage();
   });
-});
 </script>
 </body>
 </html>

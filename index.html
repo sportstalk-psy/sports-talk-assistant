@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Sports Talk Ассистент</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&amp;display=swap" rel="stylesheet"/>
-<style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sports Talk Ассистент</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
     * {
       box-sizing: border-box;
     }
@@ -193,22 +192,25 @@
 </style>
 </head>
 <body>
-<div id="chatbox">
-<div style="padding: 16px 0; text-align: center;">
-<img alt="Sports Talk" src="https://static.tildacdn.com/tild3533-3232-4632-b964-393032346437/sports_talk_logo_tem.png" style="max-height: 40px; vertical-align: middle;"/>
-<span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
-</div>
-<div id="chatlog"></div>
-<div id="input-area">
-<input id="input" placeholder="Напишите сообщение..." type="text"/>
-<button id="send">
-<svg viewbox="0 0 24 24">
-<path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z"></path>
-</svg>
-</button>
-</div>
-</div>
-<script>
+  <div id="chatbox">
+    <div style="padding: 16px 0; text-align: center;">
+      <img src="https://static.tildacdn.com/tild3533-3232-4632-b964-393032346437/sports_talk_logo_tem.png" alt="Sports Talk" style="max-height: 40px; vertical-align: middle;">
+      <span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
+    </div>
+
+    <div id="chatlog"></div>
+
+    <div id="input-area">
+      <input id="input" type="text" placeholder="Напишите сообщение..." />
+      <button id="send">
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
     const input = document.getElementById("input");
     const send = document.getElementById("send");
     const chatlog = document.getElementById("chatlog");
@@ -223,31 +225,35 @@
 
         const baseBlock = document.createElement("div");
         baseBlock.className = "message bot";
-        baseBlock.innerHTML = mainPart.replace(/\n/g, "<br>");
+        baseBlock.innerHTML = mainPart.replace(/
+/g, "<br>");
         chatlog.appendChild(baseBlock);
 
         parts.forEach(block => {
           const card = document.createElement("div");
           card.className = "profile-card";
+
           const [nameLine, ...rest] = block.split("<br>");
-          const name = `<strong style="font-weight: 700;">${nameLine}</strong>`;
+          const name = `<strong style='font-weight:700;'>${nameLine}</strong>`;
+
           let linkHtml = "";
           let descLines = [];
 
           rest.forEach(line => {
             if (line.includes("http")) {
-              linkHtml = `<a href="${line}" target="_blank">Посмотреть профиль психолога</a>`;
+              linkHtml = `<a href='${line}' target='_blank'>Посмотреть профиль психолога</a>`;
             } else {
               descLines.push(line);
             }
           });
 
           const desc = `<div>${descLines.join("<br>")}</div>`;
-          card.innerHTML = name + desc + "<br>" + linkHtml;
+          card.innerHTML = name + "<br>" + desc + "<br>" + linkHtml;
           chatlog.appendChild(card);
         });
       } else {
-        div.innerHTML = text.replace(/\n/g, "<br>");
+        div.innerHTML = text.replace(/
+/g, "<br>");
         chatlog.appendChild(div);
       }
 

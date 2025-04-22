@@ -16,7 +16,6 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 with open("psychologists_base.json", "r", encoding="utf-8") as f:
     psychologists = json.load(f)
-print(f"🔍 Загрузка: найдено {len(psychologists)} психологов.")
 
 def get_embedding(text):
     response = client.embeddings.create(
@@ -31,7 +30,6 @@ def find_relevant_psychologists(query, top_n=2, threshold=0.35):
     for person in psychologists:
         desc_embedding = np.array(get_embedding(person["description"])).reshape(1, -1)
         similarity = cosine_similarity(query_embedding, desc_embedding)[0][0]
-        print(f"🔗 Сходство с {person['name']}: {similarity:.3f}")
         results.append((person, similarity))
     relevant = sorted([r for r in results if r[1] >= threshold], key=lambda x: -x[1])
     return [r[0] for r in relevant[:top_n]]
@@ -76,13 +74,10 @@ def chat():
 
         matches = find_relevant_psychologists(user_message)
         if matches:
-            base_reply += "
-
-По вашему запросу могу порекомендовать следующих специалистов:"
+            base_reply += "\n\nПо вашему запросу могу порекомендовать следующих специалистов:"
             for match in matches:
                 base_reply += (
-                    f"
-👤 <strong>{match['name']}</strong><br>"
+                    f"\n👤 <strong>{match['name']}</strong><br>"
                     f"{match['description']}<br>"
                     f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
                 )
@@ -90,7 +85,6 @@ def chat():
         return jsonify({"response": base_reply})
 
     except Exception as e:
-        print("Ошибка сервера:", str(e))
         return jsonify({"response": "Ошибка на сервере. Попробуйте позже."}), 500
 
 @app.route("/")

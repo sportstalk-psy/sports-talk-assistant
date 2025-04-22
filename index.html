@@ -210,7 +210,10 @@
     </div>
   </div>
 
-  <script>
+  
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
   const input = document.getElementById("input");
   const send = document.getElementById("send");
   const chatlog = document.getElementById("chatlog");
@@ -225,8 +228,7 @@
 
       const baseBlock = document.createElement("div");
       baseBlock.className = "message bot";
-      baseBlock.innerHTML = mainPart.replace(/
-/g, "<br>");
+      baseBlock.innerHTML = mainPart.replace(/\n/g, "<br>");
       chatlog.appendChild(baseBlock);
 
       parts.forEach(block => {
@@ -252,8 +254,7 @@
         chatlog.appendChild(card);
       });
     } else {
-      div.innerHTML = text.replace(/
-/g, "<br>");
+      div.innerHTML = text.replace(/\n/g, "<br>");
       chatlog.appendChild(div);
     }
 
@@ -325,6 +326,8 @@
   input.addEventListener("keydown", function (e) {
     if (e.key === "Enter") sendMessage();
   });
+});
 </script>
+
 </body>
 </html>

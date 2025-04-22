@@ -77,7 +77,7 @@ def chat():
 
         matches = find_relevant_psychologists(user_message)
         if matches:
-            base_reply += "\n\nПо вашему запросу могу порекомендовать следующих специалистов:"
+            base_reply += "\n\nПо Вашему запросу могу порекомендовать следующих специалистов:"
             for match in matches:
                 base_reply += (
                     f"<br><br><strong>👤 {match['name']}</strong><br>"

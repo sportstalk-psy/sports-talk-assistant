@@ -1,11 +1,12 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sports Talk Ассистент</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sports Talk Ассистент</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&amp;display=swap" rel="stylesheet"/>
+<style>
     * {
       box-sizing: border-box;
     }
@@ -80,27 +81,34 @@
     }
 
     .profile-card {
-      background-color: #20242d;
-      padding: 12px 16px;
-      margin-top: 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      font-weight: 300;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.4s forwards;
+
+      background-color: #2a2e38;
+      padding: 16px 20px;
+      margin-top: 12px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      font-weight: 400;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .profile-card strong {
       display: block;
-      margin-bottom: 4px;
       font-weight: 700;
-      color: #fff;
+      font-size: 16px;
+      color: #ffffff;
     }
 
     .profile-card a {
-      color: #ebf5ff;
-      text-decoration: underline;
-      font-weight: 400;
+      color: #6db3ff;
+      text-decoration: none;
+      font-weight: 500;
       display: inline-block;
-      margin-top: 6px;
     }
 
     #input-area {
@@ -161,31 +169,46 @@
       }
 
       .message, .profile-card {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.4s forwards;
+
         font-size: 15px;
       }
     }
-  </style>
+  @keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-card {
+    font-size: 14px;
+    padding: 14px 16px;
+  }
+}
+</style>
 </head>
 <body>
-  <div id="chatbox">
-    <div style="padding: 16px 0; text-align: center;">
-      <img src="https://static.tildacdn.com/tild3533-3232-4632-b964-393032346437/sports_talk_logo_tem.png" alt="Sports Talk" style="max-height: 40px; vertical-align: middle;">
-      <span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
-    </div>
-
-    <div id="chatlog"></div>
-
-    <div id="input-area">
-      <input id="input" type="text" placeholder="Напишите сообщение..." />
-      <button id="send">
-        <svg viewBox="0 0 24 24">
-          <path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-
-  <script>
+<div id="chatbox">
+<div style="padding: 16px 0; text-align: center;">
+<img alt="Sports Talk" src="https://static.tildacdn.com/tild3533-3232-4632-b964-393032346437/sports_talk_logo_tem.png" style="max-height: 40px; vertical-align: middle;"/>
+<span style="margin-left: 10px; font-size: 18px; font-weight: bold; color: #cefa07;">Ваш ассистент Sports Talk</span>
+</div>
+<div id="chatlog"></div>
+<div id="input-area">
+<input id="input" placeholder="Напишите сообщение..." type="text"/>
+<button id="send">
+<svg viewbox="0 0 24 24">
+<path d="M2.01 21L23 12 2.01 3v7l15 2-15 2z"></path>
+</svg>
+</button>
+</div>
+</div>
+<script>
     const input = document.getElementById("input");
     const send = document.getElementById("send");
     const chatlog = document.getElementById("chatlog");
@@ -207,10 +230,20 @@
           const card = document.createElement("div");
           card.className = "profile-card";
           const [nameLine, ...rest] = block.split("<br>");
-          const name = `<strong>${nameLine}</strong>`;
-          const desc = `<span>${rest.slice(0, -1).join("<br>")}</span>`;
-          const link = rest[rest.length - 1];
-          card.innerHTML = name + desc + "<br>" + link;
+          const name = `<strong style="font-weight: 700;">${nameLine}</strong>`;
+          let linkHtml = "";
+          let descLines = [];
+
+          rest.forEach(line => {
+            if (line.includes("http")) {
+              linkHtml = `<a href="${line}" target="_blank">Посмотреть профиль психолога</a>`;
+            } else {
+              descLines.push(line);
+            }
+          });
+
+          const desc = `<div>${descLines.join("<br>")}</div>`;
+          card.innerHTML = name + desc + "<br>" + linkHtml;
           chatlog.appendChild(card);
         });
       } else {

@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from openai import OpenAI
@@ -47,6 +48,12 @@ general_phrases = [
     "мне нужен специалист", "ищу психолога", "психолог нужен", "психолога для ребенка"
 ]
 
+# Фразы, при которых пользователь сам просит менеджера
+manager_phrases = [
+    "свяжите с менеджером", "связаться с менеджером", "где менеджер", 
+    "не могу записаться", "помогите записаться", "саппорт", "поддержка"
+]
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
@@ -63,6 +70,7 @@ def chat():
         state = recommendation_state[user_ip]
 
         is_general = any(phrase in user_message for phrase in general_phrases)
+        wants_manager = any(phrase in user_message for phrase in manager_phrases)
         has_detail = not is_general  # Простейшая проверка: если не общее — значит уточнение есть
 
         system_prompt = (
@@ -84,13 +92,11 @@ def chat():
 
         base_reply = completion.choices[0].message.content
 
-        # 1. Если пользователь просто спрашивает "психолога", без запроса
         if is_general and not has_detail:
             state["last_asked_general"] = True
             state["since_last"] += 1
             return jsonify({"response": base_reply + "\n\nМожете уточнить, с чем именно вы хотите поработать?"})
 
-        # 2. Если он уточняет после общего запроса
         if state["last_asked_general"] and has_detail:
             state["last_asked_general"] = False
             state["since_last"] = 0
@@ -105,12 +111,10 @@ def chat():
                     )
             return jsonify({"response": base_reply})
 
-        # 3. Ограничение по частоте рекомендаций
         if state["since_last"] < 3:
             state["since_last"] += 1
             return jsonify({"response": base_reply})
 
-        # 4. Можно рекомендовать
         matches = find_relevant_psychologists(user_message)
         if matches:
             state["since_last"] = 0
@@ -123,13 +127,14 @@ def chat():
                 )
         else:
             state["since_last"] += 1
-            base_reply += (
-                "\n\nВижу, что нам нужно чуть больше данных, чтобы порекомендовать соответствующего специалиста. "
-                "Вы можете связаться с нашим менеджером — мы обязательно поможем вам подобрать психолога и оформить запись:\n\n"
-                "<a href='https://wa.me/+79112598408' target='_blank'>📲 Связаться с менеджером в WhatsApp</a>"
-            )
+            if is_general or wants_manager:
+                base_reply += (
+                    "\n\nВижу, что нам нужно чуть больше данных, чтобы порекомендовать соответствующего специалиста. "
+                    "Вы можете связаться с нашим менеджером — мы обязательно поможем вам подобрать психолога и оформить запись:\n\n"
+                    "<a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером в WhatsApp</a>"
+                )
 
-        return jsonify({"response": base_reply})
+        return jsonify({"response": base_reply })
 
     except Exception as e:
         print("Ошибка сервера:", str(e))

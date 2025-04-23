@@ -216,10 +216,16 @@
       input.value = "";
 
       const typing = document.createElement("div");
-      typing.className = "typing";
-      typing.textContent = "Ассистент печатает...";
-      chatlog.appendChild(typing);
-      chatlog.scrollTop = chatlog.scrollHeight;
+	typing.className = "typing";
+	typing.textContent = "Ассистент печатает";
+	chatlog.appendChild(typing);
+	chatlog.scrollTop = chatlog.scrollHeight;
+
+	let dotCount = 0;
+	const dotInterval = setInterval(() => {
+  dotCount = (dotCount + 1) % 4;
+  	typing.textContent = "Ассистент печатает" + ".".repeat(dotCount);
+	}, 500);
 
       try {
         const response = await fetch("https://sports-talk-assistant.onrender.com/chat", {
@@ -229,10 +235,14 @@
         });
 
         const data = await response.json();
-        chatlog.removeChild(typing);
+        clearInterval(dotInterval);
+	chatlog.removeChild(typing);
         addMessage(data.response || "Ошибка ответа от ассистента.", "bot");
-      } catch (error) {
-        chatlog.removeChild(typing);
+      } 
+	
+	catch (error) {
+        clearInterval(dotInterval);
+	chatlog.removeChild(typing);
         addMessage("Ошибка подключения к серверу.", "bot");
         console.error("Ошибка:", error);
       }

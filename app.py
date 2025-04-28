@@ -105,16 +105,19 @@ def chat():
 
         # Если проблема есть и возраст есть — сразу рекомендации
         if state.get("problem_collected") and state.get("age_collected"):
+            before_rec_text = random.choice(templates["before_recommendation"])
+            base_reply = before_rec_text
+
             matches = find_relevant_psychologists(user_message)
             if matches:
-                start_rec_text = random.choice(templates["start_recommendation"])
-                base_reply = start_rec_text
-                for match in matches:
-                    base_reply += (
-                        f"<br><br><strong>👤 {match['name']}</strong><br>"
-                        f"{match['description']}<br>"
-                        f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
-                    )
+              start_rec_text = random.choice(templates["start_recommendation"])
+              base_reply += "\n\n" + start_rec_text
+              for match in matches:
+                base_reply += (
+                  f"<br><br><strong>👤 {match['name']}</strong><br>"
+                  f"{match['description']}<br>"
+                  f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
+                )
             else:
                 base_reply = (
                     "Вижу, что нам нужно чуть больше данных, чтобы порекомендовать соответствующего специалиста. "
@@ -163,8 +166,6 @@ def chat():
             state["last_asked_general"] = False
             state["since_last"] = 0
             state["problem_collected"] = True
-            before_rec_text = random.choice(templates["before_recommendation"])
-            base_reply += "\n\n" + before_rec_text
             return jsonify({"response": base_reply})
 
         return jsonify({"response": base_reply})

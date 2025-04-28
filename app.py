@@ -158,8 +158,13 @@ def chat():
         if is_general and not has_detail:
             state["last_asked_general"] = True
             state["since_last"] += 1
-            clarify_text = random.choice(templates["clarify_problem"])
-            return jsonify({"response": base_reply + "\n\n" + clarify_text})
+
+            # Проверяем, есть ли уже уточнение в ответе GPT
+            if any(phrase in base_reply.lower() for phrase in ["уточните", "поделитесь", "что именно", "какие проблемы", "с чем именно"]):
+                return jsonify({"response": base_reply})
+            else:
+                clarify_text = random.choice(templates["clarify_problem"])
+                return jsonify({"response": base_reply + "\n\n" + clarify_text})
 
         # Если уточнение получено
         if state["last_asked_general"] and has_detail:

@@ -80,10 +80,14 @@ def chat():
     try:
         user_message_raw = request.json.get("message", "")
         user_message = user_message_raw.lower()
-        if not user_message:
-            return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
-        # Вставляем проверку возраста
+        user_ip = request.remote_addr
+        message_history[user_ip].append(user_message_raw)
+
+        # ✅ Сначала определяем state!
+        state = recommendation_state[user_ip]
+
+        # ✅ Только потом проверяем возраст
         age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок"]
         if any(word in user_message for word in age_keywords):
             state["waiting_for_age"] = False

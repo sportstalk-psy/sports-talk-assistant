@@ -22,6 +22,22 @@ with open("psychologists_base.json", "r", encoding="utf-8") as f:
     psychologists = json.load(f)
 print(f"🔍 Загрузка: найдено {len(psychologists)} психологов.")
 
+# Считаем эмбеддинги всех психологов заранее
+ready_embeddings = []
+for person in psychologists:
+    embedding = None
+    try:
+        embedding = np.array(
+            client.embeddings.create(
+                model="text-embedding-3-small",
+                input=person["description"]
+            ).data[0].embedding
+        )
+        ready_embeddings.append({"person": person, "embedding": embedding})
+        print(f"✅ Эмбеддинг для {person['name']} рассчитан.")
+    except Exception as e:
+        print(f"⚠️ Ошибка при расчёте эмбеддинга для {person['name']}: {str(e)}")
+
 def get_embedding(text):
     response = client.embeddings.create(
         model="text-embedding-3-small",
@@ -30,13 +46,19 @@ def get_embedding(text):
     return response.data[0].embedding
 
 def find_relevant_psychologists(query, top_n=2, threshold=0.35):
-    query_embedding = np.array(get_embedding(query)).reshape(1, -1)
+    query_embedding = np.array(
+        client.embeddings.create(
+            model="text-embedding-3-small",
+            input=query
+        ).data[0].embedding
+    ).reshape(1, -1)
+
     results = []
-    for person in psychologists:
-        desc_embedding = np.array(get_embedding(person["description"])).reshape(1, -1)
-        similarity = cosine_similarity(query_embedding, desc_embedding)[0][0]
-        print(f"🔗 Сходство с {person['name']}: {similarity:.3f}")
-        results.append((person, similarity))
+    for item in ready_embeddings:
+        similarity = cosine_similarity(query_embedding, item["embedding"].reshape(1, -1))[0][0]
+        print(f"🔗 Сходство с {item['person']['name']}: {similarity:.3f}")
+        results.append((item["person"], similarity))
+
     relevant = sorted([r for r in results if r[1] >= threshold], key=lambda x: -x[1])
     return [r[0] for r in relevant[:top_n]]
 

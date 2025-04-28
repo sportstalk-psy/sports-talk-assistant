@@ -11,7 +11,7 @@ from collections import defaultdict
 
 # Хранилище сообщений и состояния рекомендаций по пользователям (по IP)
 message_history = defaultdict(list)
-recommendation_state = defaultdict(lambda: {"since_last": 100, "last_asked_general": False})
+recommendation_state = defaultdict(lambda: {"since_last": 100, "last_asked_general": False, "waiting_for_age": False, "problem_collected": False})
 
 app = Flask(__name__)
 CORS(app)
@@ -82,6 +82,12 @@ def chat():
         user_message = user_message_raw.lower()
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
+
+        # Вставляем проверку возраста
+        age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок"]
+        if any(word in user_message for word in age_keywords):
+            state["waiting_for_age"] = False
+            state["problem_collected"] = True
 
         user_ip = request.remote_addr
         message_history[user_ip].append(user_message_raw)

@@ -12,7 +12,13 @@ from collections import defaultdict
 
 # Хранилище сообщений и состояния рекомендаций по пользователям (по IP)
 message_history = defaultdict(list)
-recommendation_state = defaultdict(lambda: {"since_last": 100, "last_asked_general": False, "waiting_for_age": False, "problem_collected": False})
+recommendation_state = defaultdict(lambda: {
+    "since_last": 100, 
+    "last_asked_general": False, 
+    "waiting_for_age": False, 
+    "problem_collected": False,
+    "user_age_group": None  # <-- добавили новое поле
+})
 
 app = Flask(__name__)
 CORS(app)
@@ -49,7 +55,7 @@ def get_embedding(text):
     )
     return response.data[0].embedding
 
-def find_relevant_psychologists(query, top_n=2, threshold=0.35):
+def find_relevant_psychologists(query, top_n=2, threshold=0.35, user_age_group=None):
     query_embedding = np.array(
         client.embeddings.create(
             model="text-embedding-3-small",
@@ -59,9 +65,17 @@ def find_relevant_psychologists(query, top_n=2, threshold=0.35):
 
     results = []
     for item in ready_embeddings:
+        person = item["person"]
+
+        # Фильтрация по возрастной группе
+        if user_age_group == "children" and person.get("age_group") not in ["children", "all"]:
+            continue
+        if user_age_group == "adults" and person.get("age_group") not in ["adults", "all"]:
+            continue
+
         similarity = cosine_similarity(query_embedding, item["embedding"].reshape(1, -1))[0][0]
-        print(f"🔗 Сходство с {item['person']['name']}: {similarity:.3f}")
-        results.append((item["person"], similarity))
+        print(f"🔗 Сходство с {person['name']}: {similarity:.3f}")
+        results.append((person, similarity))
 
     relevant = sorted([r for r in results if r[1] >= threshold], key=lambda x: -x[1])
     return [r[0] for r in relevant[:top_n]]
@@ -115,11 +129,16 @@ def chat():
         age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок"]
         if any(word in user_message for word in age_keywords):
             state["age_collected"] = True
+            state["user_age_group"] = "children"
         else:
             try:
                 age = int(user_message.strip())
-                if 5 <= age <= 80:
+                if 5 <= age <= 18:
                     state["age_collected"] = True
+                    state["user_age_group"] = "children"
+                elif 19 <= age <= 80:
+                    state["age_collected"] = True
+                    state["user_age_group"] = "adults"
             except ValueError:
                 pass
 
@@ -179,7 +198,8 @@ def chat():
             return jsonify({"response": base_reply})
 
         # Переходим к подбору специалистов
-        matches = find_relevant_psychologists(user_message)
+        matches = find_relevant_psychologists(user_message, user_age_group=state.get("user_age_group"))
+
 
         if matches:
             start_rec_text = random.choice(templates["start_recommendation"])

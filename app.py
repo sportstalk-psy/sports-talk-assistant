@@ -169,6 +169,9 @@ def chat():
             or (state.get("problem_collected", False) and state.get("age_collected", False))
         )
 
+        if needs_psychologist and not state["age_collected"]:
+            return jsonify({"response": random.choice(templates["request_age"])})
+
         # --- НОВАЯ ПРОВЕРКА ОТВЕТА ИИ ---
         if any(keyword in base_reply.lower() for keyword in ["уточните", "поясните", "расскажите подробнее", "что именно", "с чем связано"]):
             # ИИ попросил уточнить проблему

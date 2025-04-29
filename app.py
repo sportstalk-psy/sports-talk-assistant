@@ -191,6 +191,8 @@ def chat():
                     f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
                 )
 
+            return jsonify({"response": base_reply})
+
     except Exception as e:
         print("Ошибка сервера:", str(e))
         return jsonify({"response": "Ошибка на сервере. Попробуйте позже."}), 500
@@ -200,4 +202,4 @@ def home():
     return send_from_directory(".", "index.html")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))

@@ -133,7 +133,7 @@ def chat():
                 "\n\nЕсли хотите, менеджер Sports Talk поможет вам с подбором психолога:"
                 "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
             )
-                    return jsonify({"response": base_reply})
+            return jsonify({"response": base_reply})
 
         # Обработка обычных запросов
         system_prompt = (

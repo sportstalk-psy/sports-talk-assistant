@@ -84,6 +84,20 @@ def chat():
     try:
         user_message_raw = request.json.get("message", "")
         user_message = user_message_raw.lower()
+
+        # Проверяем возраст в тексте
+        age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок"]
+        if any(word in user_message for word in age_keywords):
+            state["age_collected"] = True
+        else:
+            # Дополнительная проверка: если сообщение состоит из числа 5–80
+            try:
+                age = int(user_message.strip())
+                if 5 <= age <= 80:
+                    state["age_collected"] = True
+            except ValueError:
+                pass
+
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
@@ -102,30 +116,6 @@ def chat():
         age_keywords = ["лет", "год", "года", "подросток", "ребенок", "ребёнок"]
         if any(word in user_message for word in age_keywords):
             state["age_collected"] = True
-
-        # Если проблема есть и возраст есть — сразу рекомендации
-        if state.get("problem_collected") and state.get("age_collected"):
-            before_rec_text = random.choice(templates["before_recommendation"])
-            base_reply = before_rec_text
-
-            matches = find_relevant_psychologists(user_message)
-
-            if matches:
-                start_rec_text = random.choice(templates["start_recommendation"])
-                base_reply += "\n\n" + start_rec_text
-                for match in matches:
-                    base_reply += (
-                        f"<br><br><strong>👤 {match['name']}</strong><br>"
-                        f"{match['description']}<br>"
-                        f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
-                    )
-            else:
-                # --- Только здесь показываем WhatsApp ---
-                base_reply += (
-                    "\n\nК сожалению, сейчас мы не нашли подходящего специалиста. "
-                    "Вы можете обратиться за помощью к нашему менеджеру в WhatsApp:"
-                    "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
-                )
 
         # И дополнительная проверка, если человек прямо попросил менеджера
         if wants_manager:

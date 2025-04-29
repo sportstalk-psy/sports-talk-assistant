@@ -196,9 +196,6 @@ def chat():
         #if not state["problem_collected"]:
             #return jsonify({"response": random.choice(templates["clarify_problem"])})
 
-        if not state["age_collected"]:
-            return jsonify({"response": random.choice(templates["request_age"])})
-
         if needs_psychologist:
             matches = find_relevant_psychologists(user_message, user_age_group=state["user_age_group"])
             if matches:

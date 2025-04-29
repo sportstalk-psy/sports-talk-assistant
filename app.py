@@ -153,39 +153,48 @@ def chat():
             messages=messages
         )
         base_reply = completion.choices[0].message.content
-        
-        # --- 1. Проверка: общее сообщение без уточнения
+
+        # Проверка на общий запрос без уточнения
         if is_general and not has_detail:
             state["last_asked_general"] = True
             state["since_last"] += 1
-
-            # Проверяем, есть ли уже уточнение в ответе GPT
             if any(phrase in base_reply.lower() for phrase in ["уточните", "поделитесь", "что именно", "какие проблемы", "с чем именно"]):
                 return jsonify({"response": base_reply})
             else:
                 clarify_text = random.choice(templates["clarify_problem"])
                 return jsonify({"response": base_reply + "\n\n" + clarify_text})
 
-        # --- 2. Проверка: уточнение получено
+        # Проверка, что уточнение получено
         if state["last_asked_general"] and has_detail:
             state["last_asked_general"] = False
             state["since_last"] = 0
             state["problem_collected"] = True
             return jsonify({"response": base_reply})
 
-        # --- 3. Только здесь подбор специалистов!
+        # Переходим к рекомендациям
         matches = find_relevant_psychologists(user_message)
+
+        # --- ВАЖНО: карточки специалистов подставляем ТОЛЬКО сейчас! ---
         if matches:
-            base_reply += "\n\nПо Вашему запросу могу порекомендовать следующих специалистов:"
+            start_rec_text = random.choice(templates["start_recommendation"])
+            base_reply += "\n\n" + start_rec_text
             for match in matches:
                 base_reply += (
                     f"<br><br><strong>👤 {match['name']}</strong><br>"
                     f"{match['description']}<br>"
                     f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
                 )
-        else:
+
+        # Если нет совпадений ИЛИ человек сам просит связаться с менеджером
+        elif wants_manager:
             base_reply += (
-                "\n\nЕсли не нашли подходящего специалиста, пожалуйста, обратитесь к нашему менеджеру через WhatsApp:"
+                "\n\nЕсли хотите, наш менеджер поможет вам выбрать специалиста:"
+                "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
+            )
+        elif not matches:
+            base_reply += (
+                "\n\nНа данный момент нет подходящих специалистов в базе. "
+                "Вы можете связаться с нашим менеджером для подбора:"
                 "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
             )
 

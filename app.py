@@ -85,6 +85,10 @@ def chat():
         user_message_raw = request.json.get("message", "")
         user_message = user_message_raw.lower()
 
+        # Список фраз, указывающих на непонимание пользователя
+        confusion_phrases = ["не поняла", "не понимаю", "что?", "не совсем ясно", "неясно", "не понятно", "не ясно"]
+
+
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
@@ -94,6 +98,15 @@ def chat():
             message_history[user_ip].pop(0)
 
         state = recommendation_state[user_ip]
+
+        if any(phrase in user_message for phrase in confusion_phrases):
+            if state.get("last_problem_message"):
+                print("🔄 Восстанавливаю последний запрос пользователя из памяти.")
+                user_message_raw = state["last_problem_message"]
+                user_message = user_message_raw.lower()
+            else:
+                print("⚠️ Нет сохранённой последней проблемы. Продолжаем обычную обработку.")
+
 
         # Проверка возраста по ключевым словам и числу
         age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок"]

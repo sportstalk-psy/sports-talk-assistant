@@ -109,21 +109,30 @@ def chat():
             base_reply = before_rec_text
 
             matches = find_relevant_psychologists(user_message)
+
             if matches:
-              start_rec_text = random.choice(templates["start_recommendation"])
-              base_reply += "\n\n" + start_rec_text
-              for match in matches:
-                base_reply += (
-                  f"<br><br><strong>👤 {match['name']}</strong><br>"
-                  f"{match['description']}<br>"
-                  f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
-                )
+                start_rec_text = random.choice(templates["start_recommendation"])
+                base_reply += "\n\n" + start_rec_text
+                for match in matches:
+                    base_reply += (
+                        f"<br><br><strong>👤 {match['name']}</strong><br>"
+                        f"{match['description']}<br>"
+                        f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
+                    )
             else:
-                base_reply = (
-                    "Вижу, что нам нужно чуть больше данных, чтобы порекомендовать соответствующего специалиста. "
-                    "Вы можете связаться с нашим менеджером:\n\n"
-                    "<a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером в WhatsApp</a>"
+                # --- Только здесь показываем WhatsApp ---
+                base_reply += (
+                    "\n\nК сожалению, сейчас мы не нашли подходящего специалиста. "
+                    "Вы можете обратиться за помощью к нашему менеджеру в WhatsApp:"
+                    "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
                 )
+
+# И дополнительная проверка, если человек прямо попросил менеджера
+if wants_manager:
+    base_reply += (
+        "\n\nЕсли хотите, менеджер Sports Talk поможет вам с подбором психолога:"
+        "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
+    )
             return jsonify({"response": base_reply})
 
         # Обработка обычных запросов

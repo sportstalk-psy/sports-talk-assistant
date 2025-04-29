@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import random
 import json
+import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from collections import defaultdict
@@ -67,16 +68,24 @@ def find_relevant_psychologists(query, top_n=2, threshold=0.35, user_age_group=N
     for item in ready_embeddings:
         person = item["person"]
 
-        # Фильтрация по возрастной группе
+        # Лог отсутствия age_group
+        if "age_group" not in person:
+            print(f"⚠️ У психолога {person['name']} не указан age_group.")
+
+        # Фильтрация по возрастной группе с логами
         if user_age_group == "children" and person.get("age_group") not in ["children", "all"]:
+            print(f"🔽 Пропущен: {person['name']} — возрастная группа не совпала (ищем детских специалистов)")
             continue
         if user_age_group == "adults" and person.get("age_group") not in ["adults", "all"]:
+            print(f"🔽 Пропущен: {person['name']} — возрастная группа не совпала (ищем специалистов для взрослых)")
             continue
 
+        # Считаем косинусную схожесть
         similarity = cosine_similarity(query_embedding, item["embedding"].reshape(1, -1))[0][0]
         print(f"🔗 Сходство с {person['name']}: {similarity:.3f}")
         results.append((person, similarity))
 
+    # Сортировка и фильтрация по порогу
     relevant = sorted([r for r in results if r[1] >= threshold], key=lambda x: -x[1])
     return [r[0] for r in relevant[:top_n]]
 
@@ -85,6 +94,13 @@ general_phrases = [
     "подбери психолога", "посоветуй психолога", "нужен психолог", 
     "рекомендовать специалиста", "подскажите специалиста",
     "мне нужен специалист", "ищу психолога", "психолог нужен", "психолога для ребенка"
+]
+
+# Ключевые слова, указывающие на нормальную проблему
+valid_problem_keywords = [
+    "страх", "волнение", "мотивация", "выгорание", "травма", "ошибка",
+    "отношения", "уверенность", "провал", "самооценка", "кризис",
+    "депрессия", "стресс", "эмоции", "переживания"
 ]
 
 # Фразы, при которых пользователь сам просит менеджера или сообщает о проблемах с платформой
@@ -97,7 +113,6 @@ manager_phrases = [
 ]
 
 @app.route("/chat", methods=["POST"])
-@app.route("/chat", methods=["POST"])
 def chat():
     try:
         user_message_raw = request.json.get("message", "")
@@ -109,11 +124,7 @@ def chat():
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
-    except Exception as e:
-        import datetime
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"🚨 [{now}] Ошибка сервера в chat(): {str(e)}")
-        return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже или напишите в поддержку."}), 500
+        found_age = False  # обнуляем флаг перед началом логики
 
         user_ip = request.remote_addr
         message_history[user_ip].append(user_message_raw)
@@ -121,6 +132,9 @@ def chat():
             message_history[user_ip].pop(0)
 
         state = recommendation_state[user_ip]
+
+        # Список фраз, указывающих на непонимание пользователя
+        confusion_phrases = ["не поняла", "не понимаю", "что?", "не совсем ясно", "неясно", "не понятно", "не ясно"]
 
         if any(phrase in user_message for phrase in confusion_phrases):
             if state.get("last_problem_message"):
@@ -130,27 +144,56 @@ def chat():
             else:
                 print("⚠️ Нет сохранённой последней проблемы. Продолжаем обычную обработку.")
 
+        found_age = False  # <-- обнуляем флаг
 
-        # Проверка возраста по ключевым словам и числу
-        age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок"]
-        if any(word in user_message for word in age_keywords):
-            state["age_collected"] = True
-            state["user_age_group"] = "children"
+    except Exception as e:
+        import datetime
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"🚨 [{now}] Ошибка сервера в chat(): {str(e)}")
+        return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже или напишите в поддержку."}), 500
+
+        # --- Определение возраста из текста ---
+        age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок", "сыну", "дочке", "мальчику", "девочке", "спортсмену"]
+        age_match = re.search(r"\b(сыну|дочке|мальчику|девочке|спортсмену|ребёнку|ребенку|подростку)?\s*(\d{1,2})", user_message)
+
+        if age_match:
+          found_age = True
+            try:
+                age = int(age_match.group(2))
+                if 5 <= age <= 18:
+                    state["age_collected"] = True
+                    state["user_age_group"] = "children"
+                    print(f"📌 Извлечён возраст из текста: {age} → группа children")
+                elif 19 <= age <= 80:
+                    state["age_collected"] = True
+                    state["user_age_group"] = "adults"
+                    print(f"📌 Извлечён возраст из текста: {age} → группа adults")
+
+        # Отдельно — если пользователь просто написал число (например, "12")
         else:
             try:
                 age = int(user_message.strip())
                 if 5 <= age <= 18:
                     state["age_collected"] = True
                     state["user_age_group"] = "children"
+                    print(f"📌 Прямое числовое значение: {age} → группа children")
                 elif 19 <= age <= 80:
                     state["age_collected"] = True
                     state["user_age_group"] = "adults"
+                    print(f"📌 Прямое числовое значение: {age} → группа adults")
             except ValueError:
-                pass
+                pass  # не удалось распознать число
+
+        # --- Если мы только что определили возраст, но в этом сообщении нет новой проблемы
+        # --- Тогда восстанавливаем прошлое сообщение (если оно есть)
+        if found_age and state.get("last_problem_message"):
+            print("🔄 Использую сохранённое проблемное сообщение для подбора.")
+            user_message_raw = state["last_problem_message"]
+            user_message = user_message_raw.lower()
 
         is_general = any(phrase in user_message for phrase in general_phrases)
         wants_manager = any(phrase in user_message for phrase in manager_phrases)
-        has_detail = not any(phrase in user_message for phrase in general_phrases)
+        has_detail = any(word in user_message for word in valid_problem_keywords)
 
         # Генерация ответа от GPT
         system_prompt = (
@@ -204,24 +247,11 @@ def chat():
             state["last_problem_message"] = user_message_raw  # Сохраняем проблему для восстановления
             return jsonify({"response": base_reply})
 
-        # Ключевые слова, указывающие на нормальную проблему
-        valid_problem_keywords = [
-            "страх", "волнение", "мотивация", "выгорание", "травма", "ошибка",
-            "отношения", "уверенность", "провал", "самооценка", "кризис",
-            "депрессия", "стресс", "эмоции", "переживания"
-        ]
-
         # Автоопределение проблемы
         if not state.get("problem_collected", False) and any(word in user_message for word in valid_problem_keywords):
             state["problem_collected"] = True
             state["last_problem_message"] = user_message_raw
             print("✅ Проблема собрана автоматически на основе ключевых слов.")
-
-        # Проверка, что уточнение получено
-        if state["last_asked_general"] and has_detail:
-            state["last_asked_general"] = False
-            state["since_last"] = 0
-            # Здесь мы не трогаем problem_collected — оно обработано выше
 
         # Если проблема ещё не собрана
         if not state.get("problem_collected", False):
@@ -235,7 +265,7 @@ def chat():
 
         # Если и проблема, и возраст собраны — переходим к подбору
         matches = find_relevant_psychologists(user_message)
-
+        
         if matches:
             start_rec_text = random.choice(templates["start_recommendation"])
             base_reply += "\n\n" + start_rec_text

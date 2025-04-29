@@ -160,7 +160,14 @@ def chat():
             "Все консультации проходят онлайн на платформе Sports Talk."
 )
 
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message_raw}]
+        # Собираем последние сообщения пользователя
+        history = message_history[user_ip][-5:]  # последние 5 реплик максимум
+
+        # Формируем историю диалога для ИИ
+        messages = [{"role": "system", "content": system_prompt}]
+        for user_msg in history:
+            messages.append({"role": "user", "content": user_msg})
+
         completion = client.chat.completions.create(model="gpt-4-turbo", messages=messages)
         base_reply = completion.choices[0].message.content
 

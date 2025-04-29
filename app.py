@@ -1,24 +1,28 @@
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-load_dotenv()
 import random
 import json
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from collections import defaultdict
+import datetime
 
-# Хранилище сообщений и состояния рекомендаций по пользователям (по IP)
+load_dotenv()
+
 message_history = defaultdict(list)
 recommendation_state = defaultdict(lambda: {
-    "since_last": 100, 
-    "last_asked_general": False, 
-    "waiting_for_age": False, 
+    "since_last": 100,
+    "last_asked_general": False,
+    "waiting_for_age": False,
     "problem_collected": False,
-    "user_age_group": None  # <-- добавили новое поле
+    "age_collected": False,
+    "user_age_group": None,
+    "last_problem_message": None
 })
 
 app = Flask(__name__)
@@ -28,15 +32,12 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 with open("psychologists_base.json", "r", encoding="utf-8") as f:
     psychologists = json.load(f)
-print(f"🔍 Загрузка: найдено {len(psychologists)} психологов.")
 
 with open("templates.json", "r", encoding="utf-8") as f:
     templates = json.load(f)
 
-# Считаем эмбеддинги всех психологов заранее
 ready_embeddings = []
 for person in psychologists:
-    embedding = None
     try:
         embedding = np.array(
             client.embeddings.create(
@@ -45,16 +46,8 @@ for person in psychologists:
             ).data[0].embedding
         )
         ready_embeddings.append({"person": person, "embedding": embedding})
-        print(f"✅ Эмбеддинг для {person['name']} рассчитан.")
     except Exception as e:
         print(f"⚠️ Ошибка при расчёте эмбеддинга для {person['name']}: {str(e)}")
-
-def get_embedding(text):
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=text
-    )
-    return response.data[0].embedding
 
 def find_relevant_psychologists(query, top_n=2, threshold=0.35, user_age_group=None):
     query_embedding = np.array(
@@ -67,45 +60,34 @@ def find_relevant_psychologists(query, top_n=2, threshold=0.35, user_age_group=N
     results = []
     for item in ready_embeddings:
         person = item["person"]
-
-        # Лог отсутствия age_group
         if "age_group" not in person:
             print(f"⚠️ У психолога {person['name']} не указан age_group.")
-
-        # Фильтрация по возрастной группе с логами
         if user_age_group == "children" and person.get("age_group") not in ["children", "all"]:
-            print(f"🔽 Пропущен: {person['name']} — возрастная группа не совпала (ищем детских специалистов)")
+            print(f"🔽 Пропущен: {person['name']} — возрастная группа не совпала")
             continue
         if user_age_group == "adults" and person.get("age_group") not in ["adults", "all"]:
-            print(f"🔽 Пропущен: {person['name']} — возрастная группа не совпала (ищем специалистов для взрослых)")
+            print(f"🔽 Пропущен: {person['name']} — возрастная группа не совпала")
             continue
-
-        # Считаем косинусную схожесть
         similarity = cosine_similarity(query_embedding, item["embedding"].reshape(1, -1))[0][0]
-        print(f"🔗 Сходство с {person['name']}: {similarity:.3f}")
         results.append((person, similarity))
 
-    # Сортировка и фильтрация по порогу
     relevant = sorted([r for r in results if r[1] >= threshold], key=lambda x: -x[1])
     return [r[0] for r in relevant[:top_n]]
 
-# Общие фразы без конкретного запроса
 general_phrases = [
-    "подбери психолога", "посоветуй психолога", "нужен психолог", 
+    "подбери психолога", "посоветуй психолога", "нужен психолог",
     "рекомендовать специалиста", "подскажите специалиста",
     "мне нужен специалист", "ищу психолога", "психолог нужен", "психолога для ребенка"
 ]
 
-# Ключевые слова, указывающие на нормальную проблему
 valid_problem_keywords = [
     "страх", "волнение", "мотивация", "выгорание", "травма", "ошибка",
     "отношения", "уверенность", "провал", "самооценка", "кризис",
     "депрессия", "стресс", "эмоции", "переживания"
 ]
 
-# Фразы, при которых пользователь сам просит менеджера или сообщает о проблемах с платформой
 manager_phrases = [
-    "свяжите с менеджером", "связаться с менеджером", "где менеджер", 
+    "свяжите с менеджером", "связаться с менеджером", "где менеджер",
     "не могу записаться", "помогите записаться", "саппорт", "поддержка",
     "проблема с регистрацией", "не могу зарегистрироваться", "ошибка при регистрации",
     "проблема с оплатой", "не проходит оплата", "ошибка оплаты",
@@ -118,13 +100,8 @@ def chat():
         user_message_raw = request.json.get("message", "")
         user_message = user_message_raw.lower()
 
-        # Список фраз, указывающих на непонимание пользователя
-        confusion_phrases = ["не поняла", "не понимаю", "что?", "не совсем ясно", "неясно", "не понятно", "не ясно"]
-
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
-
-        found_age = False  # обнуляем флаг перед началом логики
 
         user_ip = request.remote_addr
         message_history[user_ip].append(user_message_raw)
@@ -132,62 +109,35 @@ def chat():
             message_history[user_ip].pop(0)
 
         state = recommendation_state[user_ip]
+        found_age = False
 
-        # Список фраз, указывающих на непонимание пользователя
-        confusion_phrases = ["не поняла", "не понимаю", "что?", "не совсем ясно", "неясно", "не понятно", "не ясно"]
-
-        if any(phrase in user_message for phrase in confusion_phrases):
-            if state.get("last_problem_message"):
-                print("🔄 Восстанавливаю последний запрос пользователя из памяти.")
-                user_message_raw = state["last_problem_message"]
-                user_message = user_message_raw.lower()
-            else:
-                print("⚠️ Нет сохранённой последней проблемы. Продолжаем обычную обработку.")
-
-        found_age = False  # <-- обнуляем флаг
-
-    except Exception as e:
-        import datetime
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"🚨 [{now}] Ошибка сервера в chat(): {str(e)}")
-        return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже или напишите в поддержку."}), 500
-
-        # --- Определение возраста из текста ---
-        age_keywords = ["лет", "год", "года", "подросток", "ребёнок", "ребенок", "сыну", "дочке", "мальчику", "девочке", "спортсмену"]
+        # Возраст
         age_match = re.search(r"\b(сыну|дочке|мальчику|девочке|спортсмену|ребёнку|ребенку|подростку)?\s*(\d{1,2})", user_message)
-
         if age_match:
-          found_age = True
-          try:
+            found_age = True
+            try:
                 age = int(age_match.group(2))
                 if 5 <= age <= 18:
                     state["age_collected"] = True
                     state["user_age_group"] = "children"
-                    print(f"📌 Извлечён возраст из текста: {age} → группа children")
                 elif 19 <= age <= 80:
                     state["age_collected"] = True
                     state["user_age_group"] = "adults"
-                    print(f"📌 Извлечён возраст из текста: {age} → группа adults")
-
-        # Отдельно — если пользователь просто написал число (например, "12")
+            except ValueError:
+                pass
         else:
-          try:
+            try:
                 age = int(user_message.strip())
                 if 5 <= age <= 18:
                     state["age_collected"] = True
                     state["user_age_group"] = "children"
-                    print(f"📌 Прямое числовое значение: {age} → группа children")
                 elif 19 <= age <= 80:
                     state["age_collected"] = True
                     state["user_age_group"] = "adults"
-                    print(f"📌 Прямое числовое значение: {age} → группа adults")
             except ValueError:
-                pass  # не удалось распознать число
+                pass
 
-        # --- Если мы только что определили возраст, но в этом сообщении нет новой проблемы
-        # --- Тогда восстанавливаем прошлое сообщение (если оно есть)
         if found_age and state.get("last_problem_message"):
-            print("🔄 Использую сохранённое проблемное сообщение для подбора.")
             user_message_raw = state["last_problem_message"]
             user_message = user_message_raw.lower()
 
@@ -195,7 +145,6 @@ def chat():
         wants_manager = any(phrase in user_message for phrase in manager_phrases)
         has_detail = any(word in user_message for word in valid_problem_keywords)
 
-        # Генерация ответа от GPT
         system_prompt = (
             "Ты — ИИ-ассистент платформы Sports Talk. "
             "Никогда не придумывай имена или описания специалистов. Не предлагай вымышленных психологов. "
@@ -211,72 +160,45 @@ def chat():
             "Отвечай кратко, до 500 символов. Общайся дружелюбно и профессионально."
         )
 
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.append({"role": "user", "content": user_message_raw})
-
-        completion = client.chat.completions.create(
-            model="gpt-4-turbo",
-            messages=messages
-        )
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_message_raw}]
+        completion = client.chat.completions.create(model="gpt-4-turbo", messages=messages)
         base_reply = completion.choices[0].message.content
 
-        # --- Проверяем: просит ли человек менеджера ---
         if wants_manager:
-            base_reply += (
-                "\n\nЕсли у вас возникли трудности с регистрацией, оплатой или подключением, "
-                "наш менеджер поможет вам решить эти вопросы:"
-                "<br><br><a href='https://wa.me/+79112598408' target='_blank' style='color:#ebf5ff;'>📲 Связаться с менеджером</a>"
-            )
+            base_reply += "\n\nЕсли у вас возникли трудности — "
+            base_reply += "<br><a href='https://wa.me/+79112598408' target='_blank'>📲 Связаться с менеджером</a>"
             return jsonify({"response": base_reply})
 
-        # Проверка на общий запрос без уточнения
         if is_general and not has_detail:
             state["last_asked_general"] = True
-            state["since_last"] += 1
-            if any(phrase in base_reply.lower() for phrase in ["уточните", "поделитесь", "что именно", "какие проблемы", "с чем именно"]):
-                return jsonify({"response": base_reply})
-            else:
-                clarify_text = random.choice(templates["clarify_problem"])
-                return jsonify({"response": base_reply + "\n\n" + clarify_text})
+            clarify_text = random.choice(templates["clarify_problem"])
+            return jsonify({"response": base_reply + "\n\n" + clarify_text})
 
-                # Проверка, что уточнение получено
-        if state["last_asked_general"] and has_detail:
-            state["last_asked_general"] = False
-            state["since_last"] = 0
-            state["problem_collected"] = True
-            state["last_problem_message"] = user_message_raw  # Сохраняем проблему для восстановления
-            return jsonify({"response": base_reply})
-
-        # Автоопределение проблемы
-        if not state.get("problem_collected", False) and any(word in user_message for word in valid_problem_keywords):
+        if has_detail:
             state["problem_collected"] = True
             state["last_problem_message"] = user_message_raw
-            print("✅ Проблема собрана автоматически на основе ключевых слов.")
 
-        # Если проблема ещё не собрана
-        if not state.get("problem_collected", False):
-            clarify_text = random.choice(templates["clarify_problem"])
-            return jsonify({"response": clarify_text})
+        if not state["problem_collected"]:
+            return jsonify({"response": random.choice(templates["clarify_problem"])})
 
-        # Если возраст ещё не собран
-        if not state.get("age_collected", False):
-            age_text = random.choice(templates["request_age"])
-            return jsonify({"response": age_text})
+        if not state["age_collected"]:
+            return jsonify({"response": random.choice(templates["request_age"])})
 
-        # Если и проблема, и возраст собраны — переходим к подбору
-        matches = find_relevant_psychologists(user_message)
-        
+        matches = find_relevant_psychologists(user_message, user_age_group=state["user_age_group"])
         if matches:
             start_rec_text = random.choice(templates["start_recommendation"])
             base_reply += "\n\n" + start_rec_text
             for match in matches:
-                base_reply += (
-                    f"<br><br><strong>👤 {match['name']}</strong><br>"
-                    f"{match['description']}<br>"
-                    f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
-                )
+                base_reply += f"<br><br><strong>👤 {match['name']}</strong><br>{match['description']}<br><a href='{match['link']}' target='_blank'>Посмотреть профиль</a>"
+        else:
+            base_reply += "\n\nНе удалось найти подходящего специалиста. Попробуйте уточнить запрос."
 
         return jsonify({"response": base_reply})
+
+    except Exception as e:
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"🚨 [{now}] Ошибка сервера: {str(e)}")
+        return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже."}), 500
 
 @app.route("/")
 def home():

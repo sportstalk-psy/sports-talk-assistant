@@ -109,6 +109,12 @@ def chat():
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
+    except Exception as e:
+            import datetime
+            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"🚨 [{now}] Ошибка сервера в chat(): {str(e)}")
+            return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже или напишите в поддержку."}), 500
+
         user_ip = request.remote_addr
         message_history[user_ip].append(user_message_raw)
         if len(message_history[user_ip]) > 10:
@@ -198,36 +204,49 @@ def chat():
             state["last_problem_message"] = user_message_raw  # Сохраняем проблему для восстановления
             return jsonify({"response": base_reply})
 
-        # Если проблема ещё не собрана — уточняем её
+        # Ключевые слова, указывающие на нормальную проблему
+        valid_problem_keywords = [
+            "страх", "волнение", "мотивация", "выгорание", "травма", "ошибка",
+            "отношения", "уверенность", "провал", "самооценка", "кризис",
+            "депрессия", "стресс", "эмоции", "переживания"
+        ]
+
+        # Автоопределение проблемы
+        if not state.get("problem_collected", False) and any(word in user_message for word in valid_problem_keywords):
+            state["problem_collected"] = True
+            state["last_problem_message"] = user_message_raw
+            print("✅ Проблема собрана автоматически на основе ключевых слов.")
+
+        # Проверка, что уточнение получено
+        if state["last_asked_general"] and has_detail:
+            state["last_asked_general"] = False
+            state["since_last"] = 0
+            # Здесь мы не трогаем problem_collected — оно обработано выше
+
+        # Если проблема ещё не собрана
         if not state.get("problem_collected", False):
             clarify_text = random.choice(templates["clarify_problem"])
             return jsonify({"response": clarify_text})
 
-        # Если возраст ещё не собран — просим возраст
+        # Если возраст ещё не собран
         if not state.get("age_collected", False):
             age_text = random.choice(templates["request_age"])
             return jsonify({"response": age_text})
 
-        # Если и проблема, и возраст собраны — переходим к подбору специалистов
-        if state["problem_collected"] and state["age_collected"]:
-            matches = find_relevant_psychologists(user_message)
+        # Если и проблема, и возраст собраны — переходим к подбору
+        matches = find_relevant_psychologists(user_message)
 
-            if matches:
-                start_rec_text = random.choice(templates["start_recommendation"])
-                recommendation_text = start_rec_text
-                for match in matches:
-                    recommendation_text += (
-                        f"<br><br><strong>👤 {match['name']}</strong><br>"
-                        f"{match['description']}<br>"
-                        f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
-                    )
-                return jsonify({"response": recommendation_text})
-            else:
-                return jsonify({"response": "Извините, пока не удалось найти подходящих специалистов для вашего запроса."})
+        if matches:
+            start_rec_text = random.choice(templates["start_recommendation"])
+            base_reply += "\n\n" + start_rec_text
+            for match in matches:
+                base_reply += (
+                    f"<br><br><strong>👤 {match['name']}</strong><br>"
+                    f"{match['description']}<br>"
+                    f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
+                )
 
-    except Exception as e:
-        print("Ошибка сервера:", str(e))
-        return jsonify({"response": "Ошибка на сервере. Попробуйте позже."}), 500
+        return jsonify({"response": base_reply})
 
 @app.route("/")
 def home():

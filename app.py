@@ -158,7 +158,7 @@ def chat():
 
         if age_match:
           found_age = True
-            try:
+          try:
                 age = int(age_match.group(2))
                 if 5 <= age <= 18:
                     state["age_collected"] = True
@@ -171,7 +171,7 @@ def chat():
 
         # Отдельно — если пользователь просто написал число (например, "12")
         else:
-            try:
+          try:
                 age = int(user_message.strip())
                 if 5 <= age <= 18:
                     state["age_collected"] = True

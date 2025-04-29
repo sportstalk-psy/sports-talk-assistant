@@ -97,6 +97,7 @@ manager_phrases = [
 ]
 
 @app.route("/chat", methods=["POST"])
+@app.route("/chat", methods=["POST"])
 def chat():
     try:
         user_message_raw = request.json.get("message", "")
@@ -105,15 +106,14 @@ def chat():
         # Список фраз, указывающих на непонимание пользователя
         confusion_phrases = ["не поняла", "не понимаю", "что?", "не совсем ясно", "неясно", "не понятно", "не ясно"]
 
-
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
     except Exception as e:
-            import datetime
-            now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"🚨 [{now}] Ошибка сервера в chat(): {str(e)}")
-            return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже или напишите в поддержку."}), 500
+        import datetime
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"🚨 [{now}] Ошибка сервера в chat(): {str(e)}")
+        return jsonify({"response": "Произошла ошибка на сервере. Попробуйте позже или напишите в поддержку."}), 500
 
         user_ip = request.remote_addr
         message_history[user_ip].append(user_message_raw)

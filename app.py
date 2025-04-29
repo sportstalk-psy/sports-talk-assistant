@@ -190,31 +190,40 @@ def chat():
                 clarify_text = random.choice(templates["clarify_problem"])
                 return jsonify({"response": base_reply + "\n\n" + clarify_text})
 
-        # Проверка, что уточнение получено
+                # Проверка, что уточнение получено
         if state["last_asked_general"] and has_detail:
             state["last_asked_general"] = False
             state["since_last"] = 0
             state["problem_collected"] = True
+            state["last_problem_message"] = user_message_raw  # Сохраняем проблему для восстановления
             return jsonify({"response": base_reply})
 
-        # Переходим к подбору специалистов
-        matches = find_relevant_psychologists(user_message, user_age_group=state.get("user_age_group"))
+        # Если проблема ещё не собрана — уточняем её
+        if not state.get("problem_collected", False):
+            clarify_text = random.choice(templates["clarify_problem"])
+            return jsonify({"response": clarify_text})
 
+        # Если возраст ещё не собран — просим возраст
+        if not state.get("age_collected", False):
+            age_text = random.choice(templates["request_age"])
+            return jsonify({"response": age_text})
 
-        if matches:
-            start_rec_text = random.choice(templates["start_recommendation"])
-            base_reply += "\n\n" + start_rec_text
-            for match in matches:
-                base_reply += (
-                    f"<br><br><strong>👤 {match['name']}</strong><br>"
-                    f"{match['description']}<br>"
-                    f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
-                )
-        else:
-            print("👀 Нет подходящих специалистов — отправляем обычный ответ.")
+        # Если и проблема, и возраст собраны — переходим к подбору специалистов
+        if state["problem_collected"] and state["age_collected"]:
+            matches = find_relevant_psychologists(user_message)
 
-        # ✅ Всегда отправляем базовый ответ!
-        return jsonify({"response": base_reply})
+            if matches:
+                start_rec_text = random.choice(templates["start_recommendation"])
+                recommendation_text = start_rec_text
+                for match in matches:
+                    recommendation_text += (
+                        f"<br><br><strong>👤 {match['name']}</strong><br>"
+                        f"{match['description']}<br>"
+                        f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
+                    )
+                return jsonify({"response": recommendation_text})
+            else:
+                return jsonify({"response": "Извините, пока не удалось найти подходящих специалистов для вашего запроса."})
 
     except Exception as e:
         print("Ошибка сервера:", str(e))

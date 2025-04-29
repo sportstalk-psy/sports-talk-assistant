@@ -125,7 +125,7 @@ def chat():
 
         is_general = any(phrase in user_message for phrase in general_phrases)
         wants_manager = any(phrase in user_message for phrase in manager_phrases)
-        has_detail = not is_general
+        has_detail = not any(phrase in user_message for phrase in general_phrases)
 
         # Генерация ответа от GPT
         system_prompt = (
@@ -190,8 +190,11 @@ def chat():
                     f"{match['description']}<br>"
                     f"<a href='{match['link']}' target='_blank'>Посмотреть профиль психолога</a>"
                 )
+        else:
+            print("👀 Нет подходящих специалистов — отправляем обычный ответ.")
 
-            return jsonify({"response": base_reply})
+        # ✅ Всегда отправляем базовый ответ!
+        return jsonify({"response": base_reply})
 
     except Exception as e:
         print("Ошибка сервера:", str(e))

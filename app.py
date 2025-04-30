@@ -100,12 +100,11 @@ def chat():
         user_message_raw = request.json.get("message", "")
         user_message = user_message_raw.lower()
 
-        print(f"📩 Сообщение от {user_ip}: {user_message_raw}")
-
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
 
         user_ip = request.remote_addr
+        print(f"📩 Сообщение от {user_ip}: {user_message_raw}")
         message_history[user_ip].append(user_message_raw)
         if len(message_history[user_ip]) > 10:
             message_history[user_ip].pop(0)

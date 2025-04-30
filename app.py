@@ -236,8 +236,13 @@ def chat():
         if state["age_collected"] and not state["problem_collected"] and not is_direct_request:
             return jsonify({"response": "Напишите, пожалуйста, с какой темой вы хотели бы поработать — это поможет мне лучше понять ваш запрос."})
 
-        # --- Если есть проблема, но нет возраста
-        if state["problem_collected"] and not state["age_collected"] and not is_direct_request:
+        # --- Если есть проблема, но нет возраста — но только если это потенциально запрос на консультацию
+        if (
+            state["problem_collected"]
+            and not state["age_collected"]
+            and not is_direct_request
+            and any(word in user_message for word in valid_problem_keywords)
+        ):
             return jsonify({"response": "Уточните, пожалуйста, возраст человека, для которого нужна консультация — так я смогу точнее подобрать специалиста."})
 
                 # --- Если прямой запрос — не дублируем общие рекомендации, а сразу карточки ---

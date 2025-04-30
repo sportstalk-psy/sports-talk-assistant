@@ -192,18 +192,24 @@ def chat():
 
         # --- Новый способ: запрашиваем возраст и запрос только при прямом запросе психолога ---
         # --- Улучшенная логика прямого запроса ---
-        direct_intents = ["нужен", "ищу", "подбери", "порекомендуй", "записаться", "посоветуй", "хочу"]
-        psychologist_terms = ["психолог", "специалист", "консультация", "психолога", "специалиста"]
-
-        is_direct_request = any(word in user_message for word in direct_intents) and any(term in user_message for term in psychologist_terms)
+        is_direct_request = any(
+            intent in user_message and term in user_message
+            for intent in ["нужен", "ищу", "подбери", "порекомендуй", "записаться", "посоветуй", "хочу"]
+            for term in ["психолог", "психолога", "консультация", "специалист", "специалиста"]
+        )
 
         if is_direct_request and len(user_message.split()) <= 3 and state.get("last_problem_message"):
             user_message_raw = state["last_problem_message"]
             user_message = user_message_raw.lower()
 
         # --- Если человек просит подобрать психолога, но возраст или проблема не указаны — просим их вместе ---
-        if is_direct_request and not (state["problem_collected"] and state["age_collected"]):
-            return jsonify({"response": "Напишите, пожалуйста, запрос на ближайшую встречу и возраст человека, для которого нужна консультация."})
+        if is_direct_request:
+            if not state["problem_collected"] and not state["age_collected"]:
+                return jsonify({"response": "Напишите, пожалуйста, с какой темой вы хотели бы поработать и возраст человека, для которого нужна консультация."})
+            elif not state["problem_collected"]:
+                return jsonify({"response": "Напишите, пожалуйста, с какой темой вы хотели бы поработать — это поможет мне точнее подобрать специалиста."})
+            elif not state["age_collected"]:
+                return jsonify({"response": "Уточните, пожалуйста, возраст человека, для которого нужна консультация — так я смогу точнее подобрать специалиста."})
 
         # Формируем историю диалога для ИИ
         messages = [{"role": "system", "content": system_prompt}]

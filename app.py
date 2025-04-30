@@ -138,8 +138,13 @@ def chat():
             except ValueError:
                 pass
 
-        # Если сообщение содержит только возраст — подставим предыдущее сообщение
-        if found_age and state.get("last_problem_message") and len(user_message.split()) <= 3:
+        # Если сообщение содержит только возраст (нет ключевых слов) — подставим предыдущее сообщение
+        if (
+            found_age 
+            and state.get("last_problem_message") 
+            and len(user_message.split()) <= 4
+            and not any(word in user_message for word in valid_problem_keywords)
+        ):
             print("🔄 Использую последнее сообщение с проблемой.")
             user_message_raw = state["last_problem_message"]
             user_message = user_message_raw.lower()
@@ -166,6 +171,17 @@ def chat():
         # Собираем последние сообщения пользователя
         history = message_history[user_ip][-5:]  # последние 5 реплик максимум
 
+        # --- Новый способ: запрашиваем возраст и запрос только при прямом запросе психолога ---
+        is_direct_request = any(kw in user_message for kw in ["хочу записаться", "ищу психолога", "нужен специалист", "посоветуй психолога", "психолога", "консультация", "специалиста"])
+
+        if is_direct_request and len(user_message.split()) <= 3 and state.get("last_problem_message"):
+            user_message_raw = state["last_problem_message"]
+            user_message = user_message_raw.lower()
+
+        # --- Если человек просит подобрать психолога, но возраст или проблема не указаны — просим их вместе ---
+        if is_direct_request and not (state["problem_collected"] and state["age_collected"]):
+            return jsonify({"response": "Напишите, пожалуйста, с какой темой вы хотели бы поработать и возраст человека, для которого нужна консультация."})
+
         # Формируем историю диалога для ИИ
         messages = [{"role": "system", "content": system_prompt}]
         for user_msg in history:
@@ -173,9 +189,6 @@ def chat():
 
         completion = client.chat.completions.create(model="gpt-4-turbo", messages=messages)
         base_reply = completion.choices[0].message.content
-
-        # --- Новый способ: запрашиваем возраст и запрос только при прямом запросе психолога ---
-        is_direct_request = any(kw in user_message for kw in ["подбери", "порекомендуй", "хочу записаться", "ищу психолога", "нужен специалист", "посоветуй психолога"])
 
         # --- Проверка: понял ли ИИ проблему сам ---
         if any(keyword in base_reply.lower() for keyword in ["уточните", "поясните", "расскажите подробнее", "что именно", "с чем связано"]):
@@ -188,10 +201,6 @@ def chat():
             base_reply += "\n\nЕсли у вас возникли трудности — "
             base_reply += "<br><a href='https://wa.me/+79112598408' target='_blank'>📲 Связаться с менеджером</a>"
             return jsonify({"response": base_reply})
-
-        # --- Если человек просит подобрать психолога, но возраст или проблема не указаны — просим их вместе ---
-        if is_direct_request and not (state["problem_collected"] and state["age_collected"]):
-            return jsonify({"response": "Напишите, пожалуйста, с какой темой вы хотели бы поработать и возраст человека, для которого нужна консультация."})
 
         # --- Если и возраст, и проблема есть — подбор психолога (по прямому запросу) ---
         if is_direct_request and state["problem_collected"] and state["age_collected"]:
@@ -206,7 +215,9 @@ def chat():
             return jsonify({"response": base_reply})
 
         # --- Если человек просто говорит про тему (например, стресс) — короткий ответ + 1 специалист ---
-        if state["problem_collected"] and state["age_collected"]:
+        if state["problem_collected"] and state["age_collected"] and not is_direct_request:
+            state["last_problem_message"] = user_message_raw
+
             matches = find_relevant_psychologists(user_message, user_age_group=state["user_age_group"])
             if matches:
                 base_reply += "<br><br>Если захотите обсудить это подробнее, могу порекомендовать специалиста:"

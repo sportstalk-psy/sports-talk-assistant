@@ -127,6 +127,10 @@ def chat():
         state["since_last"] += 1
         found_age = False
 
+        irrelevant_inputs = ["привет", "здравствуйте", "добрый день", "добрый вечер", "приветствую"]
+        if user_message.strip() in irrelevant_inputs:
+            return jsonify({"response": "Привет! Чем могу помочь? Расскажите, что вас интересует в спортивной психологии."})
+
         # Возраст
         age_match = re.search(r"\b(сыну|дочке|мальчику|девочке|спортсмену|ребёнку|ребенку|подростку)?\s*(\d{1,2})", user_message)
         if age_match:
@@ -214,18 +218,19 @@ def chat():
             base_reply = "Привет! " + base_reply
 
         # --- Проверка: понял ли ИИ проблему сам ---
-        if any(keyword in base_reply.lower() for keyword in ["уточните", "поясните", "расскажите подробнее", "что именно", "с чем связано"]):
+        irrelevant_inputs = ["привет", "здравствуйте", "добрый день", "добрый вечер", "приветствую"]
+        clarification_phrases = ["уточните", "поясните", "расскажите подробнее", "что именно", "с чем связано"]
+
+        if any(phrase in base_reply.lower() for phrase in clarification_phrases):
             state["problem_collected"] = False
-            # Если сообщение содержит важные ключевые слова — всё равно сохраняем
+            # Сохраняем запрос, если в нём уже есть потенциально важные ключевые слова
             if any(word in user_message for word in valid_problem_keywords):
                 state["last_problem_message"] = user_message_raw
+        elif user_message.strip() in irrelevant_inputs:
+            state["problem_collected"] = False
         else:
-            irrelevant_inputs = ["привет", "здравствуйте", "добрый день", "добрый вечер", "приветствую"]
-            if user_message.strip() not in irrelevant_inputs:
-                state["problem_collected"] = True
-                state["last_problem_message"] = user_message_raw
-            else:
-                state["problem_collected"] = False
+            state["problem_collected"] = True
+            state["last_problem_message"] = user_message_raw
 
         # --- Если есть возраст, но нет запроса
         if state["age_collected"] and not state["problem_collected"] and not is_direct_request:

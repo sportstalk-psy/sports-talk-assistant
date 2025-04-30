@@ -220,8 +220,12 @@ def chat():
             if any(word in user_message for word in valid_problem_keywords):
                 state["last_problem_message"] = user_message_raw
         else:
-            state["problem_collected"] = True
-            state["last_problem_message"] = user_message_raw
+            irrelevant_inputs = ["привет", "здравствуйте", "добрый день", "добрый вечер", "приветствую"]
+            if user_message.strip() not in irrelevant_inputs:
+                state["problem_collected"] = True
+                state["last_problem_message"] = user_message_raw
+            else:
+                state["problem_collected"] = False
 
         # --- Если есть возраст, но нет запроса
         if state["age_collected"] and not state["problem_collected"] and not is_direct_request:

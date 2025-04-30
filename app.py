@@ -74,7 +74,7 @@ def find_relevant_psychologists(query, top_n=2, threshold=0.35, user_age_group=N
     relevant = sorted([r for r in results if r[1] >= threshold], key=lambda x: -x[1])
     return [r[0] for r in relevant[:top_n]]
 
-general_phrases = [
+#general_phrases = [
     "подбери психолога", "посоветуй психолога", "нужен психолог",
     "рекомендовать специалиста", "подскажите специалиста",
     "мне нужен специалист", "ищу психолога", "психолог нужен", "психолога для ребенка"
@@ -99,6 +99,8 @@ def chat():
     try:
         user_message_raw = request.json.get("message", "")
         user_message = user_message_raw.lower()
+
+        print(f"📩 Сообщение от {user_ip}: {user_message_raw}")
 
         if not user_message:
             return jsonify({"response": "Пожалуйста, напишите сообщение."})
@@ -137,7 +139,9 @@ def chat():
             except ValueError:
                 pass
 
-        if found_age and state.get("last_problem_message"):
+        # Если сообщение содержит только возраст — подставим предыдущее сообщение
+        if found_age and state.get("last_problem_message") and len(user_message.split()) <= 3:
+            print("🔄 Использую последнее сообщение с проблемой.")
             user_message_raw = state["last_problem_message"]
             user_message = user_message_raw.lower()
 
@@ -171,22 +175,13 @@ def chat():
         completion = client.chat.completions.create(model="gpt-4-turbo", messages=messages)
         base_reply = completion.choices[0].message.content
 
-        # --- Новый способ определения: нужна ли рекомендация психолога ---
-        needs_psychologist = (
-            any(kw in user_message for kw in ["психолог", "специалист", "консультация"]) 
-            or ("по вашему запросу могу порекомендовать" in base_reply.lower())
-            or (state.get("problem_collected", False) and state.get("age_collected", False))
-        )
+        # --- Новый способ: запрашиваем возраст и запрос только при прямом запросе психолога ---
+        is_direct_request = any(kw in user_message for kw in ["подбери", "порекомендуй", "хочу записаться", "ищу психолога", "нужен специалист", "посоветуй психолога"])
 
-        if needs_psychologist and not state["age_collected"]:
-            return jsonify({"response": random.choice(templates["request_age"])})
-
-        # --- НОВАЯ ПРОВЕРКА ОТВЕТА ИИ ---
+        # --- Проверка: понял ли ИИ проблему сам ---
         if any(keyword in base_reply.lower() for keyword in ["уточните", "поясните", "расскажите подробнее", "что именно", "с чем связано"]):
-            # ИИ попросил уточнить проблему
             state["problem_collected"] = False
         else:
-            # ИИ понял проблему сам
             state["problem_collected"] = True
             state["last_problem_message"] = user_message_raw
 
@@ -195,23 +190,29 @@ def chat():
             base_reply += "<br><a href='https://wa.me/+79112598408' target='_blank'>📲 Связаться с менеджером</a>"
             return jsonify({"response": base_reply})
 
-        #if is_general and not state["problem_collected"]:
-            #state["last_asked_general"] = True
-            #clarify_text = random.choice(templates["clarify_problem"])
-            #return jsonify({"response": base_reply + "\n\n" + clarify_text})
+        # --- Если человек просит подобрать психолога, но возраст или проблема не указаны — просим их вместе ---
+        if is_direct_request and not (state["problem_collected"] and state["age_collected"]):
+            return jsonify({"response": "Напишите, пожалуйста, с какой темой вы хотели бы поработать и возраст человека, для которого нужна консультация."})
 
-        #if not state["problem_collected"]:
-            #return jsonify({"response": random.choice(templates["clarify_problem"])})
-
-        if needs_psychologist:
+        # --- Если и возраст, и проблема есть — подбор психолога (по прямому запросу) ---
+        if is_direct_request and state["problem_collected"] and state["age_collected"]:
             matches = find_relevant_psychologists(user_message, user_age_group=state["user_age_group"])
             if matches:
-                start_rec_text = random.choice(templates["start_recommendation"])
-                base_reply += "\n\n" + start_rec_text
+                rec_text = random.choice(templates["start_recommendation"])
+                base_reply = rec_text
                 for match in matches:
                     base_reply += f"<br><br><strong>👤 {match['name']}</strong><br>{match['description']}<br><a href='{match['link']}' target='_blank'>Посмотреть профиль</a>"
             else:
-                base_reply += "\n\nНе удалось найти подходящего специалиста. Попробуйте уточнить запрос."
+                base_reply = "К сожалению, не удалось найти подходящего специалиста. Возможно, я еще не так хорошо знаю базу, хотите связаться с менеджером? Или попробуйте немного переформулировать запрос."
+            return jsonify({"response": base_reply})
+
+        # --- Если человек просто говорит про тему (например, стресс) — короткий ответ + 1 специалист ---
+        if state["problem_collected"] and state["age_collected"]:
+            matches = find_relevant_psychologists(user_message, user_age_group=state["user_age_group"])
+            if matches:
+                base_reply += "<br><br>Если захотите обсудить это подробнее, могу порекомендовать специалиста:"
+                match = matches[0]
+                base_reply += f"<br><br><strong>👤 {match['name']}</strong><br>{match['description']}<br><a href='{match['link']}' target='_blank'>Посмотреть профиль</a>"
 
         return jsonify({"response": base_reply})
 
